@@ -15,12 +15,11 @@ seconds on linuxX64. Next step: file an issue or open a PR against ktorio/ktor.
 ## Sample run (full output)
 
 `./run.sh`, run on 2026-10-07 on Debian GNU/Linux 13 (trixie) (x86_64), curl 8.14.1, Kotlin 2.3.21, Ktor 3.6.0, kotlinx.coroutines 1.11.0.
-Exit code **1** (reproduced). The `JAVA_TOOL_OPTIONS` line comes from that machine's environment, not from this project.
+Exit code **1** (reproduced).
 
 ```
 $ ./run.sh
 Building… (the first build downloads the Kotlin/Native toolchain and can take several minutes)
-Picked up JAVA_TOOL_OPTIONS: -Xmx32g -XX:+HeapDumpOnOutOfMemoryError
 
 Ktor 3.6.0 Curl engine — does a cancelled request's cause leak into a different request?
   A: withTimeoutOrNull(137 ms) { GET /slow?ms=137±3 }   (timeout races the response)
