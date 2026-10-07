@@ -69,10 +69,34 @@ request:
 - **B:** plain `get("/fast")` calls in a loop on 4 coroutines.
 
 Any B that fails with a `CancellationException`, especially `Timed out waiting for 137 ms`, is the bug. Run
-`./run.sh`; it exits 1 when a leak is seen. Knobs: `ROUNDS`, `A_TIMEOUT_MS`, `B_WORKERS`.
+`./run.sh`; it exits 1 when a leak is seen. Knobs: `MAX_SECONDS`, `A_TIMEOUT_MS`, `B_WORKERS`, `STALL_MS`.
 
-**Status: written, not yet run** (2026-10-07). If it does not reproduce on its own, raise `ROUNDS`, add more B
-workers, or vary `A_TIMEOUT_MS` so completion and timeout land in the same event-loop turn.
+**Status: reproduces reliably** (2026-10-07, on linuxX64, release build). Each run stopped at the first symptom,
+usually within 4–10 s and always under 30 s. Two forms appear:
+
+1. **A foreign cancellation.** A plain B request fails with
+   `TimeoutCancellationException: Timed out waiting for 137 ms`, request A's cause. Sometimes B's **own coroutine** is
+   left cancelled with that cause. Every later request in it then fails at once: one worker spun through ~786 000
+   instant failures in 30 s.
+2. **A lost cancellation.** Request A's `withTimeoutOrNull(137)` fires but never returns, and the call waits for ever.
+   A's cancellation went to another handle, so its own transfer is never completed or removed. The first version of
+   this program "ran for ever" for this reason.
+
+Sample output:
+
+```
+RESULT: BUG REPRODUCED
+  B request #8367 (worker 2) — a plain GET /fast with no timeout of its own — failed with
+      TimeoutCancellationException: Timed out waiting for 137 ms
+  That is request A's withTimeoutOrNull(137 ms) cause. B was cancelled by a different request.
+
+RESULT: BUG REPRODUCED (second form)
+  Request A #34 — withTimeoutOrNull(137 ms) { GET /slow } — has not returned after 3183 ms.
+```
+
+Exit codes: 1 = reproduced (either form), 0 = not reproduced within `MAX_SECONDS`, 2 = the program itself hung.
+A watchdog thread and `run.sh`'s `timeout -k` make sure it always ends. The process does not stop on a plain
+`SIGTERM` while it is in this state; the watchdog uses `exit()`, and `run.sh` follows up with `SIGKILL`.
 
 ## Possible fixes (for the PR)
 

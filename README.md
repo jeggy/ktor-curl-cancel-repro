@@ -4,9 +4,10 @@ A minimal reproduction and draft report for a Ktor 3.6.0 Curl-engine bug: a canc
 different, later request that reuses the same curl easy-handle address. See **REPORT.md**.
 
 ```sh
-./run.sh            # builds (Kotlin/Native linuxX64) and runs; exit 1 = leak reproduced
-ROUNDS=20000 B_WORKERS=8 ./run.sh
+./run.sh                     # builds (Kotlin/Native linuxX64) and runs; stops at the first symptom, max 60 s
+MAX_SECONDS=300 B_WORKERS=8 ./run.sh
 ```
 
 Needs JDK 21 for Gradle (e.g. `JAVA_HOME=~/.jdks/jbr-21.0.11 ./run.sh`) and libcurl development headers on the host.
-Next step: run it, then file an issue or open a PR against ktorio/ktor.
+Exit 1 = reproduced (either form, see REPORT.md), 0 = not reproduced in time, 2 = hung (watchdog). It reproduces in
+seconds on linuxX64. Next step: file an issue or open a PR against ktorio/ktor.
